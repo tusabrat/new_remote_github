@@ -1,0 +1,82 @@
+From af3e0c348a3c7cc2f5217f2d6a46834a229b8899 Mon Sep 17 00:00:00 2001
+From: Marco Villegas <marvil07@gmail.com>
+Date: Wed, 29 Aug 2012 10:13:07 -0500
+Subject: [PATCH] Issue #1761092: Fixed hook_requirements failed detecting
+ installed git version.
+
+- Use version_compare() instead of manually trying to figure out the
+  comparison. Before this it works only if the version string have 4
+  parts are those were one digit.
+- Also use `git --version` instead of `git version` just in case.
+---
+ versioncontrol_git.install |   28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/versioncontrol_git.install b/versioncontrol_git.install
+index d55a962..47d87bc 100644
+--- a/versioncontrol_git.install
++++ b/versioncontrol_git.install
+@@ -48,7 +48,7 @@ function versioncontrol_requirements($phase) {
+     );
+     try {
+       // Try to ask git for the version installed.
+-      $version = shell_exec(_versioncontrol_git_get_binary_path() . ' version');
++      $version = shell_exec(_versioncontrol_git_get_binary_path() . ' --version');
+       $version = _versioncontrol_git_check_version_string($version);
+       $t_args['@version'] = $version['version'];
+       $t_args['@required_version'] = VERSIONCONTROL_GIT_REQUIRED_GIT_VERSION;
+@@ -63,7 +63,7 @@ function versioncontrol_requirements($phase) {
+     }
+     if (!empty($version['status'])) {
+       try {
+-        $path_version = shell_exec('git version');
++        $path_version = shell_exec('git --version');
+         $path_version = _versioncontrol_git_check_version_string($path_version);
+         if ($path_version['status']) {
+           $message = 'Git version @version installed.';
+@@ -96,27 +96,27 @@ function versioncontrol_requirements($phase) {
+ }
+ 
+ /**
+- * Compare a version string from `git version` to our requirements.
++ * Compare a version string to our requirements.
+  *
+  * @param $version
+- *  The version of git optionally including the string "git version"
+- *  as returned from the binary.
+- * @return
+- *  A string representing the version (without the "git version" string) or
+- *  NULL if the requirement is not met.
++ *   The version of git optionally including the string "git version" as
++ *   returned by `git --version`.
++ *
++ * @return array
++ *   An array with the following keys:
++ *   - version: the string representing the version (without the "git version"
++ *   string).
++ *   - status: TRUE if the requirement is met, FALSE if not.
+  */
+ function _versioncontrol_git_check_version_string($version) {
+-  $return = array('status' => FALSE);
++  $return = array();
++  $return['status'] = version_compare($version, VERSIONCONTROL_GIT_REQUIRED_GIT_VERSION, '>=');
+   if (strpos($version, 'git version') !== FALSE) 
+   {
+-    $return['version'] = $version = substr($version, 12);
++    $return['version'] = substr($version, 12);
+   }
+   else 
+   {
+     $return['version'] = $version;
+   }
+-  $version_integer = str_replace('.', '', $version) / 1000;
+-  if ($version_integer >= str_replace('.', '', VERSIONCONTROL_GIT_REQUIRED_GIT_VERSION) / 1000) {
+-    $return['status'] = TRUE;
+-  }
+   $return['status'] = TRUE;
+   return $return;
+ }
+ 
+-- 
+1.7.10.4
+
