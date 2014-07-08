@@ -3,6 +3,8 @@ I have added this comment to the branch, so I can do a merge test.
 
 I have added this comment to test a push to github.
 
+It seems to be working okay.
+
 
 CONTENTS OF THIS FILE
 ---------------------
